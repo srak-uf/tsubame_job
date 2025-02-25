@@ -1,0 +1,81 @@
+#!/bin/bash
+mpirank=40
+numthreads=1
+walltime=04:00:00
+submit="y"
+debug="n"
+queue="cpu_40"
+
+while [ $# -ge 1 ]; do
+  case $1 in
+  -i)
+   inputfile=$2
+   inputwoext=${inputfile%.*}
+   shift
+   ;;
+  -wtime)
+   walltime=$2
+   shift;;
+  -q)
+   queue=$2
+   shift;;
+  -debug)
+   debug=$2
+   shift;;
+  -sub)
+   submit=$2
+   shift;;
+  -help|-h|--help)
+   echo "Usage: g16sub [OPTION]"
+   echo "-h, -help, --help      print this help screen"
+   echo "-i                     Input file for g16 calculation"
+   echo "-wtime                 walltime per job. HH:MM:SS. Default: 4:00:00."
+   echo "-q                     queue name. Default: cpu_40"
+   echo "-debug                 Debug mode. Default: n"
+   echo "-sub  [y|n]            Do you submit job? -> y or n"
+   exit 0;;
+  -*)
+   echo "ERROR: Invalid command line flag $1 found"
+   exit 1;;
+  *)
+   echo "ERROR: Unknown command line string $1 found"
+   exit 1;;
+  esac
+  shift
+done
+
+
+if [ -z "$inputfile" ]; then
+  echo "ERROR: Please specify input file"
+  exit 1
+fi
+
+cat << 'EOM' > ${inputwoext}-1.sh
+#!/bin/bash
+#$ -cwd
+#$ -l V_QUEUE=1
+#$ -l h_rt=vWTIME
+
+module purge
+module load gaussian/16C2_cpu gaussview/6.1
+
+g16 < vINPUT  > vIwoext.log
+EOM
+
+
+sed -i -e "s/vWTIME/${walltime}/g"    \
+       -e "s/vINPUT/${inputfile}/g"   \
+       -e "s/vIwoext/${inputwoext}/g" \
+       -e "s/V_QUEUE/${queue}/g" ${inputwoext}-1.sh
+
+
+if [ $submit == "y" ]; then
+  if [ $debug == "y" ]; then
+    jobid=`rsub -i ${inputwoext}-1.sh -debug y ` ; echo ${jobid} 
+  elif [ $debug == "n" ]; then
+    jobid=`rsub -i ${inputwoext}-1.sh` ; echo ${jobid}
+  fi
+fi
+
+
+

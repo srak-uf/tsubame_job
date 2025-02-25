@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+
+qstat 
+statinfo=`qstat`
+
+readarray -t dirarray < "/home/4/uf02194/jobcontrol/joblist"
+file_wc=${#dirarray[@]}
+echo -n > /home/4/uf02194/jobcontrol/joblist_temp
+njob=0
+
+echo ""
+echo ""
+
+# echo "$statinfo" | while read line
+while read line
+do
+  njob=$((njob+1))
+  if [ "`echo ${line} | grep "uf02194"`" ]; then
+    # echo "${line}"
+    line_ary=($line)
+    jobid=${line_ary[0]}
+    jobname=${line_ary[2]} 
+    state=${line_ary[4]}
+    date_job=${line_ary[5]}
+    time_job=${line_ary[6]}
+
+
+    if [ "`echo ${line} | grep "\@"`" ]; then
+      slots=${line_ary[8]}
+      else
+      slots=${line_ary[7]}
+    fi
+
+
+    for i in `seq 0 $((file_wc-1))`; do
+      tmp=(${dirarray[$i]})
+      jobid_i=${tmp[0]}
+      jobpath_i=${tmp[1]}
+      if [ "`echo ${line} | grep ${jobid_i}`" ]; then
+        printf "%8s %12s %4s %10s %10s %4s %s\n" \
+            ${jobid_i} ${jobname} ${state} \
+            ${date_job} ${time_job} ${slots} ${jobpath_i} 
+        echo ${dirarray[$i]} >> /home/4/uf02194/jobcontrol/joblist_temp
+      fi
+    done
+  fi
+done <<EOI
+"$statinfo"
+EOI
+
+# echo "Submitted jobs -> " $((njob-5)) " /64"
+
+mv /home/4/uf02194/jobcontrol/joblist_temp /home/4/uf02194/jobcontrol/joblist
+
+
+

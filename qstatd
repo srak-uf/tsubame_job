@@ -1,0 +1,6 @@
+#!/bin/bash
+
+
+jobdir=`qstat -j $1 | grep dir`
+echo $1 "   " $jobdir 
+

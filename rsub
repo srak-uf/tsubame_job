@@ -1,0 +1,79 @@
+#!/bin/bash
+
+unset $hjobid
+debug="n"
+group="tga-tateyama"
+while [ $# -ge 1 ]; do
+  case $1 in
+  -i)
+   declare -a inputfiles=()
+   while [ $# -ge 1 ] && [ "${2:0:1}" != "-" ]; do
+     inputfiles=("${inputfiles[@]}" $2)
+     shift
+     # inputfiles=("${inputfiles[@]}" $2)
+     # shift
+   done
+   ;;
+  -hjobid)
+   hjobid=$2
+   shift
+   ;;
+  -debug)
+   debug=$2
+   shift
+   ;;
+  -help|-h|--help)
+   echo "Usage: rsubstep [OPTION]"
+   echo "-h, -help, --help      print this help screen"
+   echo "-i                     Input files, e.g., -i file1 file2 file3..."
+   echo "-hjobid                Hold job"
+   echo "-debug                 y | n"
+   exit 0;;
+  -*)
+   echo "ERROR: Invalid command line flag $1 found"
+   exit 1;;
+  *)
+   echo "ERROR: Unknown command line string $1 found"
+   exit 1;;
+  esac
+  shift
+done
+
+
+for file in ${inputfiles[@]}; do
+  if [ ! -e ${file} ]; then
+    echo "ERROR: ${file} not found"
+    exit 1
+  fi
+done
+
+if [ $debug = "y" ]; then
+  group=""
+else
+  group="-g ${group}"
+fi
+
+for file in ${inputfiles[@]}; do
+    if [ -z "$hjobid" ]; then
+      echo qsub ${group} $file
+      jobid=(`qsub ${group} $file`)
+    else
+      echo qsub ${group} $file -hold_jid ${hjobid}
+      jobid=(`qsub ${group} -hold_jid ${hjobid} $file`)
+    fi
+    
+    echo ${jobid[*]}
+    if [ ${jobid[-1]} = "submitted" ]; then
+      # echo ${jobid[*]}
+      hjobid=${jobid[2]}
+      CDIR=`pwd`
+      echo "${hjobid} ${CDIR}"  >>  ~/jobcontrol/joblist
+      echo "${hjobid} ${CDIR}"  >>  ~/jobcontrol/joblist_all
+    else
+      echo "Fail job submit"
+      echo ${jobid}
+    fi
+done
+
+
+
