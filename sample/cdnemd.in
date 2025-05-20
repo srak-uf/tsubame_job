@@ -1,0 +1,35 @@
+group gcd empty
+label loopgcd
+variable i loop ${n_cctype}
+    variable cc equal abs(v_ccharge[${i}])
+    if "${cc} > 0" then &
+        "group gctemp type ${i}" &
+        "group gcd union gcd gctemp"
+next i
+jump SELF loopgcd
+compute cid gcd property/atom mass
+run 0
+
+variable cnttype equal 0
+group cdodd empty
+group cdeven empty
+variable natoms equal count(all)
+label loopcd
+variable i loop ${natoms}
+    variable thisid equal C_cid[v_i]
+    variable flagoe equal ${cnttype}%2
+    print "${cnttype}"
+    if "${thisid} > 0 && ${flagoe} == 1" then &
+        "print 'odd'" &
+        "variable cnttype equal 1+${cnttype}" &
+        "group tempoe id ${i}" &
+        "group cdodd  union cdodd tempoe" &
+        "group tempoe delete"
+    if "${thisid} > 0 && ${flagoe} == 0" then &
+        "print 'even'" &
+        "variable cnttype equal 1+${cnttype}" &
+        "group tempoe id ${i}" &
+        "group cdeven union cdeven tempoe" &
+        "group tempoe delete"
+next i
+jump SELF loopcd

@@ -1,0 +1,198 @@
+variable          rep1  equal  round(v_repl[1])
+variable          rep2  equal  round(v_repl[2])
+variable          rep3  equal  round(v_repl[3])
+replicate         ${rep1}  ${rep2}  ${rep3}
+timestep          ${dt}
+thermo            ${nstlog}
+thermo_style      custom step time etotal ke pe temp press vol density & 
+                  evdwl ecoul epair elong etail &
+                  pxx pxy pxz pyy pyz pzz &
+                  cella cellb cellc cellalpha cellbeta cellgamma &
+                  xlo xhi ylo yhi zlo zhi xy xz yz
+thermo_modify     line yaml 
+
+# [ minimization
+if "${minimize} == geoopt" then &
+    "minimize 1e-10 1e-10 1000 10000"    &
+    "write_data ${jobname}_geoopt.data " &
+    "reset_timestep    0" &
+elif "${minimize} == cellopt" &
+    "fix 1 all box/relax aniso 0.0 vmax 0.001"   &
+    "minimize 1e-10 1e-10 1000 10000"    &
+    "unfix 1"    &
+    "write_data ${jobname}_cellopt.data " &
+    "reset_timestep    0"
+# ]
+
+# [ MD trajectory
+variable          nstdump equal ${nstxout}*10
+dump              1 all custom ${nstdump} ${jobname}_${ensemble}_${tempK}K_${patm}atm.lammpstrj id type element x y z
+dump_modify       1 sort id element La Li O Zr
+# dump              2 all xtc ${nstxout} ${jobname}_${ensemble}_${tempK}K_${patm}atm.xtc
+# dump_modify       2 unwrap yes
+dump              2 all xyz ${nstdump} ${jobname}_${ensemble}_${tempK}K_${patm}atm.xyz
+dump_modify       2 element  La Li O Zr      
+# ]
+
+# [ Initial velocities
+if "${initvel}" then &
+    "velocity          all create ${tempK} ${seed}"
+# ]
+
+# [ NVT
+if "${ensemble} == nvt" then &
+    "fix               ens all nvt temp ${tempK} ${tempK} 0.1"
+# ]
+
+# [ NPT
+if "${ensemble} == isonpt" then &
+    "fix               ens all npt temp ${tempK} ${tempK} 0.1 iso ${patm} ${patm} 1"
+if "${ensemble} == anisonpt" then &
+    "fix               ens all npt temp ${tempK} ${tempK} 0.1 aniso ${patm} ${patm} 1"
+if "${ensemble} == trinpt" then &
+    "fix               ens all npt temp ${tempK} ${tempK} 0.1 tri ${patm} ${patm} 1"
+# ]
+
+fix               comm all momentum ${nstcomm} linear 1 1 1 
+
+# [CD+CM-NEMD
+if "${docdnemd} && ${direction} == x" then &
+    "variable   d  vector [1,0,0]" &
+    "variable   dnvtx equal round(1)" &
+    "variable   dnvty equal round(0)" &
+    "variable   dnvtz equal round(0)" &
+elif "${docdnemd} && ${direction} == y" &
+    "variable   d  vector [0,1,0]" &
+    "variable   dnvtx equal round(0)" &
+    "variable   dnvty equal round(1)" &
+    "variable   dnvtz equal round(0)" &
+elif "${docdnemd} && ${direction} == z" &
+    "variable   d  vector [0,0,1]" &
+    "variable   dnvtx equal round(0)" &
+    "variable   dnvty equal round(0)" &
+    "variable   dnvtz equal round(1)" &
+elif "${docdnemd}" &
+    "print 'Error: direction should be x, y, or z'" &
+    "quit"
+
+if "${docmnemd} && ${direction} == x" then &
+    "variable   d  vector [1,0,0]" &
+    "variable   dnvtx equal round(1)" &
+    "variable   dnvty equal round(0)" &
+    "variable   dnvtz equal round(0)" &
+elif "${docmnemd} && ${direction} == y" &
+    "variable   d  vector [0,1,0]" &
+    "variable   dnvtx equal round(0)" &
+    "variable   dnvty equal round(1)" &
+    "variable   dnvtz equal round(0)" &
+elif "${docmnemd} && ${direction} == z" &
+    "variable   d  vector [0,0,1]" &
+    "variable   dnvtx equal round(0)" &
+    "variable   dnvty equal round(0)" &
+    "variable   dnvtz equal round(1)" &
+elif "${docmnemd}" &
+    "print 'Error: direction should be x, y, or z'" &
+    "quit"
+# ]
+
+# [CD-NEMD
+# group gcd empty
+# label loopgcd
+# variable i loop ${n_cctype}
+#     variable cc equal abs(v_ccharge[${i}])
+#     if "${cc} > 0" then &
+#         "group gctemp type ${i}" &
+#         "group gcd union gcd gctemp"
+# next i
+# jump SELF loopgcd
+# compute cid gcd property/atom mass
+# run 0
+
+# variable cnttype equal 0
+# group cdodd empty
+# group cdeven empty
+# variable natoms equal count(all)
+# label loopcd
+# variable i loop ${natoms}
+#     variable thisid equal C_cid[v_i]
+#     variable flagoe equal ${cnttype}%2
+#     print "${cnttype}"
+#     if "${thisid} > 0 && ${flagoe} == 1" then &
+#         "print 'odd'" &
+#         "variable cnttype equal 1+${cnttype}" &
+#         "group tempoe id ${i}" &
+#         "group cdodd  union cdodd tempoe" &
+#         "group tempoe delete"
+#     if "${thisid} > 0 && ${flagoe} == 0" then &
+#         "print 'even'" &
+#         "variable cnttype equal 1+${cnttype}" &
+#         "group tempoe id ${i}" &
+#         "group cdeven union cdeven tempoe" &
+#         "group tempoe delete"
+# next i
+# jump SELF loopcd
+if "${docdnemd}" then &
+    "include     cdnemd.in"
+if "${docdnemd}" then &
+    "variable          cfexodd equal ${fe}*v_d[1]*(-1)" &
+    "variable          cfeyodd equal ${fe}*v_d[2]*(-1)" &
+    "variable          cfezodd equal ${fe}*v_d[3]*(-1)" &
+    "variable          cfeveven equal ${fe}*v_d[1]" &
+    "variable          cfeyeven equal ${fe}*v_d[2]" &
+    "variable          cfezeven equal ${fe}*v_d[3]" &
+    "fix cdoddfe  cdodd  addforce ${cfexodd} ${cfeyodd} ${cfezodd}" &
+    "fix cdevenfe cdeven addforce ${cfeveven} ${cfeyeven} ${cfezeven}"
+# ]
+
+# [CM-NEMD
+label loopi
+if "${docmnemd}" then &
+    "variable i loop ${n_cctype}" &
+    "    group             g${i} type ${i}"   &
+    "    variable          cfe equal ${fe}*v_ccharge[${i}]"   &
+    "    variable          cfex equal ${cfe}*v_d[1]" &
+    "    variable          cfey equal ${cfe}*v_d[2]" &
+    "    variable          cfez equal ${cfe}*v_d[3]" &
+    "    fix               ccfix${i} g${i} addforce ${cfex} ${cfey} ${cfez}"   &
+    "next i"   &
+    "jump SELF loopi"
+if "${docmnemd} && ${ensemble} == nvt" then &
+    "fix               ens all nvt temp ${tempK} ${tempK} 0.1 tchain 1" &
+    "compute           twoDtemp all temp/partial ${dnvtx} ${dnvty} ${dnvtz}"  &
+    "fix_modify        ens temp twoDtemp"
+
+if "${docmnemd} && ${ensemble} == isonpt" then &
+    "fix               ens all npt temp ${tempK} ${tempK} 0.1 iso ${patm} ${patm} 1 tchain 1"
+
+if "${docmnemd} && ${ensemble} == anisonpt" then &
+    "fix               ens all npt temp ${tempK} ${tempK} 0.1 aniso ${patm} ${patm} 1 tchain 1"
+#] 
+
+if "${eqdenstep} > 0 && ${boxscale}" then &
+    "run               ${eqdenstep}" &
+    "variable          steps equal ${steps}-${eqdenstep}" &
+    "variable          xlo equal xlo" &
+    "variable          xhi equal xhi" &
+    "variable          ylo equal ylo" &
+    "variable          yhi equal yhi" &
+    "variable          zlo equal zlo" &
+    "variable          zhi equal zhi" &
+    "variable          xy equal xy" &
+    "variable          xz equal xz" &
+    "variable          yz equal yz" &
+    "variable          nrepeat equal round(${steps}/${nstlog})" &
+    "fix               eqcell all ave/time ${nstlog} ${nrepeat} ${steps} v_xlo v_xhi v_ylo v_yhi v_zlo v_zhi v_xy v_xz v_yz file eqcell.dat " &
+    "run               ${steps}" &
+    "variable          eqxlo equal f_eqcell[1]" &
+    "variable          eqxhi equal f_eqcell[2]" &
+    "variable          eqylo equal f_eqcell[3]" &
+    "variable          eqyhi equal f_eqcell[4]" &
+    "variable          eqzlo equal f_eqcell[5]" &
+    "variable          eqzhi equal f_eqcell[6]" &
+    "variable          eqxy  equal f_eqcell[7]" &
+    "variable          eqxz  equal f_eqcell[8]" &
+    "variable          eqyz  equal f_eqcell[9]" &
+    "change_box        all x final ${eqxlo} ${eqxhi} y final ${eqylo} ${eqyhi} z final ${eqzlo} ${eqzhi} remap units box" &
+    "write_data        ${jobname}_${ensemble}_${tempK}K_${patm}atm_eqcell.data" &
+else &
+    "run               ${steps}"

@@ -1,0 +1,26 @@
+# [potential setup
+pair_style        buck/coul/long 12.0
+kspace_style      pppm 1.0e-6
+
+# 1:La 2:Li 3:O 4:Zr
+pair_coeff  1  1     0.000      1.000   0.000
+pair_coeff  1  2     0.000      1.000   0.000
+pair_coeff  1  3     2075.26    0.326   23.25
+pair_coeff  1  4     0.000      1.000   0.000
+pair_coeff  2  2     0.000      1.000   0.000
+pair_coeff  2  3     1087.29    0.26    0.000
+pair_coeff  2  4     0.000      1.000   0.000
+pair_coeff  3  3     4870.0     0.267   77.0
+pair_coeff  3  4     1650.32    0.311   5.10
+pair_coeff  4  4     0.000      1.000   0.000
+
+
+variable charge_Li equal 1.0
+variable charge_La equal 2.5
+variable charge_Zr equal 2.65
+variable charge_O  equal -1.65
+set type 1 charge ${charge_La}
+set type 2 charge ${charge_Li}
+set type 3 charge ${charge_O}
+set type 4 charge ${charge_Zr}
+# ]

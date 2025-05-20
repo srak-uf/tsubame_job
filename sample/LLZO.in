@@ -1,0 +1,40 @@
+units             metal
+atom_style        full
+
+# [parameter setup
+# [default parameters
+variable eV2kcalmol equal    23.06054801206949
+variable eV2kjmol   equal    96.48533288249875
+# ]
+# [MD parameters
+variable jobname    string  LLZO
+variable seed       equal   123
+variable repl       vector  [1,1,1]
+variable initvel    equal   true
+
+variable dt         equal    0.002
+variable steps      equal    50000
+variable ensemble   string   nvt    # nvt, isonpt, anisonpt, trinpt
+variable tempK      equal    700
+variable patm       equal    1
+
+variable docmnemd   equal    false
+variable docdnemd   equal    false
+variable fe         equal    0.01
+variable direction  string   z   # x | y | z
+variable ccharge    vector   [0,0,0,0]  # cdnemd -> 1 is flag, cmnemd -> valenca charge 
+variable n_cctype   equal    4
+
+variable minimize   string   geoopt    # none | geoopt | cellopt
+variable boxscale   equal    false
+
+variable nstlog     equal    100
+variable nstxout    equal    100
+variable nstcomm    equal    50
+variable eqdenstep  equal    250000
+# ]
+# ]
+
+read_data   LLZO.data
+include     forcefield_LLZO.in
+include     core_md.in
