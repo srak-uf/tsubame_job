@@ -3,9 +3,11 @@
 qstat 
 statinfo=`qstat`
 
-readarray -t dirarray < "/home/4/uf02194/jobcontrol/joblist"
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+
+readarray -t dirarray < "${SCRIPT_DIR}/joblist"
 file_wc=${#dirarray[@]}
-echo -n > /home/4/uf02194/jobcontrol/joblist_temp
+echo -n > ${SCRIPT_DIR}/joblist_temp
 njob=0
 
 echo ""
@@ -40,7 +42,7 @@ do
         printf "%8s %12s %4s %10s %10s %4s %s\n" \
             ${jobid_i} ${jobname} ${state} \
             ${date_job} ${time_job} ${slots} ${jobpath_i} 
-        echo ${dirarray[$i]} >> /home/4/uf02194/jobcontrol/joblist_temp
+        echo ${dirarray[$i]} >> ${SCRIPT_DIR}/joblist_temp
       fi
     done
   fi
@@ -50,7 +52,7 @@ EOI
 
 # echo "Submitted jobs -> " $((njob-5)) " /64"
 
-mv /home/4/uf02194/jobcontrol/joblist_temp /home/4/uf02194/jobcontrol/joblist
+mv ${SCRIPT_DIR}/joblist_temp ${SCRIPT_DIR}/joblist
 
 
 

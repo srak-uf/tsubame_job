@@ -97,6 +97,8 @@ else
   group="-g ${group}"
 fi
 
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+
 for file in ${inputfiles[@]}; do
     if [ -z "$hjobid" ]; then
       echo qsub ${group} $file
@@ -113,8 +115,8 @@ for file in ${inputfiles[@]}; do
       # echo ${jobid[*]}
       hjobid=${jobid[2]}
       CDIR=`pwd`
-      echo "${hjobid} ${CDIR}"  >>  ~/jobcontrol/joblist
-      echo "${hjobid} ${CDIR}"  >>  ~/jobcontrol/joblist_all
+      echo "${hjobid} ${CDIR}"  >>  ${SCRIPT_DIR}/joblist
+      echo "${hjobid} ${CDIR}"  >>  ${SCRIPT_DIR}/joblist_all
     else
       echo "Fail job submit"
       echo ${jobid}
