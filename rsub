@@ -1,5 +1,49 @@
 #!/bin/bash
 
+function echo_price () {
+gr=(`grep "^#\$ -l" $1`)   
+
+# price list
+queue=(cpu_160 cpu_80 cpu_40 cpu_16 cpu_8 cpu_4  gpu_1 gpu_h node_f node_h node_q node_o)
+price=(37.5    18.75  9.375  3.75   1.875 0.9375 12.5  6.25  62.5   31.25  15.625 7.8125)
+lenq=${#queue[@]}
+
+# "cpu_80=1" から "=" より後ろの数字(1)を取り出す
+for i in ${gr[@]};
+do
+    for qi in `seq 0 $((lenq-1))`;
+    do
+        if [ `echo $i | grep ${queue[$qi]}=` ]; then
+            if [[ $i =~ "=" ]]; then
+                n_node=${i#*=}
+                # echo ${queue[$qi]} $n_node
+                price_hour=`echo "scale=4; ${price[$qi]}*$n_node" | bc`
+                # echo $price_sum
+            fi
+        fi
+    done
+done
+
+gr=(`grep "^#\$ -l" $1 | grep h_rt=`)
+for i in ${gr[@]};
+do
+    if [[ $i =~ "=" ]]; then
+        h_rt=${i#*=}
+        # echo $h_rt
+    fi
+done
+
+# hh:mm:ss -> hours
+h=`echo $h_rt | awk -F: '{print $1}'`
+m=`echo $h_rt | awk -F: '{print $2}'`
+s=`echo $h_rt | awk -F: '{print $3}'`
+h_rt_h=`echo "scale=4; $h + $m/60 + $s/3600" | bc`
+
+# price_hour * h_rt_h
+price_sum=`echo "scale=4; $price_hour * $h_rt_h" | bc`
+echo $price_sum "JPY"
+}
+
 unset $hjobid
 debug="n"
 group="tga-tateyama"
@@ -57,9 +101,11 @@ for file in ${inputfiles[@]}; do
     if [ -z "$hjobid" ]; then
       echo qsub ${group} $file
       jobid=(`qsub ${group} $file`)
+      echo_price $file
     else
       echo qsub ${group} $file -hold_jid ${hjobid}
       jobid=(`qsub ${group} -hold_jid ${hjobid} $file`)
+      echo_price $file
     fi
     
     echo ${jobid[*]}
