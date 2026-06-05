@@ -2,7 +2,7 @@
 
 qstat 
 statinfo=`qstat`
-userid="uf02194"
+userid=$USER
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 
@@ -18,7 +18,7 @@ echo ""
 while read line
 do
   njob=$((njob+1))
-  if [ "`echo ${line} | grep $userid`" ]; then
+  if [ "`echo ${line} | grep ${userid}`" ]; then
     # echo "${line}"
     line_ary=($line)
     jobid=${line_ary[0]}
