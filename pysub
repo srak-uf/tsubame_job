@@ -5,6 +5,7 @@ walltime=04:00:00
 submit="y"
 debug="n"
 queue="cpu_40"
+conda_env=imc
 
 while [ $# -ge 1 ]; do
   case $1 in
