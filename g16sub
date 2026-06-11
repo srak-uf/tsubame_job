@@ -57,7 +57,8 @@ cat << 'EOM' > ${inputwoext}-1.sh
 #$ -l h_rt=vWTIME
 
 module purge
-module load gaussian/16C2_cpu gaussview/6.1
+# module load gaussian/16C2_cpu gaussview/6.1
+module load gaussian/16C2_cpu_NBO
 
 g16 < vINPUT  > vIwoext.log
 EOM
